@@ -16,10 +16,10 @@ We moved from a purely server-side approach to a **Hybrid Model** to eliminate l
 The system is tuned to balance speed with accuracy using the following constants in `index.html`:
 
 ```javascript
-// Current "Perfect Balance"
-const SAFE_PREDICTION_INTERVAL = 120; // Check hand every 120ms (~8 times/sec)
-const STABILITY_THRESHOLD = 8;        // Hold for 8 matches (~0.96s) to confirm letter
-const MIN_TIME_BETWEEN_LETTERS = 800; // Wait 0.8s before typing next letter
+// Current "Stable Balance"
+const SAFE_PREDICTION_INTERVAL = 150; // Check hand every 150ms (~6.6 times/sec)
+const STABILITY_THRESHOLD = 7;        // Hold for 7 matches (~1.05s) to confirm letter
+const MIN_TIME_BETWEEN_LETTERS = 1000; // Wait 1s before typing next letter
 ```
 
 *   **Logic**:

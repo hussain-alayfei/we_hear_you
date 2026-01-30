@@ -991,7 +991,7 @@
         // Game Props
         let lastVideoTime = -1;
         let lastPredictionTime = 0;
-        const PREDICTION_INTERVAL = 150;
+        const PREDICTION_INTERVAL = 150; // Improved: 120ms (more responsive)
 
         let targetSentence = "";
         let currentTargetIndex = 0;
@@ -1002,7 +1002,7 @@
 
         // Consecutive correct detections required before advancing
         let consecutiveCorrect = 0;
-        const REQUIRED_CONSECUTIVE = 3; // Must detect correctly 3 times in a row
+        const REQUIRED_CONSECUTIVE = 4; // Increased for more stability (from 3)
 
         // Track last wrong prediction to avoid counting repetitive same-letter errors
         let lastWrongPrediction = null;
@@ -1514,9 +1514,9 @@
         let currentDraftText = "";
         let lastTypedTime = 0;
         let lastSafeChatPredictionTime = 0;
-        const SAFE_PREDICTION_INTERVAL = 120; // 8.3 checks/sec (Math Balance)
-        const STABILITY_THRESHOLD = 8;
-        const MIN_TIME_BETWEEN_LETTERS = 800; // 0.8s Rhythm
+        const SAFE_PREDICTION_INTERVAL = 150;
+        const STABILITY_THRESHOLD = 7;        // Increased: ~1.05s hold (from 5)
+        const MIN_TIME_BETWEEN_LETTERS = 1000; // Slower rhythm: 1 second pause (from 600ms)
 
         async function startSafeChatTraining() {
             safeChatMode = true;
@@ -1557,19 +1557,33 @@
                 });
         }
 
+        // Off-screen canvas for faster prediction encoding
+        const offscreenCanvas = document.createElement('canvas');
+        offscreenCanvas.width = 300; // Optimal size for model (300x300)
+        offscreenCanvas.height = 300;
+        const offscreenCtx = offscreenCanvas.getContext('2d');
+
+        // Throttling for MediaPipe (Client-Side Skeleton)
+        let lastSkeletonTime = 0;
+        let lastLandmarks = null;
+        const SKELETON_INTERVAL = 35; // ~28 FPS detection (Fixes lag by skipping heavy frames)
+
         async function processSafeChatFrame(video, canvas, ctx) {
             if (!safeChatMode) return;
 
-            // 1. Draw Video Background
+            // 1. Draw Video Background to Main Canvas (High Quality for User)
+            // This runs every RAF loop (smooth video)
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            // 2. Server Prediction (THROTTLED)
-            // Send clean video frame (before drawing skeleton)
             const now = Date.now();
+
+            // 2. Server Prediction (THROTTLED & OPTIMIZED)
             if (now - lastSafeChatPredictionTime > SAFE_PREDICTION_INTERVAL) {
                 lastSafeChatPredictionTime = now;
 
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+                // Optimization: Draw to small off-screen canvas first
+                offscreenCtx.drawImage(video, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
+                const dataUrl = offscreenCanvas.toDataURL('image/jpeg', 0.6);
 
                 fetch('/predict', {
                     method: 'POST',
@@ -1583,19 +1597,30 @@
                     .catch(err => console.log("Prediction error:", err));
             }
 
-            // 3. Client-Side Skeleton (INSTANT & SMOOTH)
+            // 3. Client-Side Skeleton (DECOUPLED & SMOOTH)
             // Using the global 'handLandmarker' from the existing architecture
             if (typeof handLandmarker !== 'undefined' && handLandmarker && video.videoWidth > 0) {
-                try {
-                    const startTimeMs = performance.now();
-                    const results = handLandmarker.detectForVideo(video, startTimeMs);
 
-                    if (results.landmarks && results.landmarks.length > 0) {
-                        // Draw using the existing helper
-                        drawHandLandmarks(results.landmarks, canvas.width, canvas.height, ctx);
+                // Only run heavy detection every ~35ms
+                if (now - lastSkeletonTime > SKELETON_INTERVAL) {
+                    lastSkeletonTime = now;
+                    try {
+                        const startTimeMs = performance.now();
+                        const results = handLandmarker.detectForVideo(video, startTimeMs);
+
+                        if (results.landmarks && results.landmarks.length > 0) {
+                            lastLandmarks = results.landmarks; // Cache results
+                        } else {
+                            lastLandmarks = null;
+                        }
+                    } catch (e) {
+                        // Silent fail
                     }
-                } catch (e) {
-                    // console.error("MP Error:", e); // Silent fail to avoid spam
+                }
+
+                // Always draw the last known landmarks (Visual continuity)
+                if (lastLandmarks) {
+                    drawHandLandmarks(lastLandmarks, canvas.width, canvas.height, ctx);
                 }
             }
 
@@ -1665,8 +1690,10 @@
             }
         }
 
-        function sendDraftMessage() {
+        async function sendDraftMessage() {
             if (!currentDraftText.trim()) return;
+
+            const textToSpeak = currentDraftText.trim();
 
             // Add to chat UI (Mockup)
             const chatMessages = document.getElementById('chatMessages');
@@ -1674,15 +1701,35 @@
             msgDiv.className = "flex justify-end animate-fade-in-up";
             msgDiv.innerHTML = `
                 <div class="bg-blue-600 text-white rounded-[2rem] rounded-tr-lg py-3 px-6 max-w-xs md:max-w-md shadow-md text-lg">
-                    ${currentDraftText}
+                    ${textToSpeak}
                 </div>
             `;
             chatMessages.appendChild(msgDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
-            // Clear Draft
+            // Clear Draft immediately
             currentDraftText = "";
             updateDraftDisplay();
+
+            // Call TTS endpoint and play audio
+            try {
+                const response = await fetch('/tts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: textToSpeak })
+                });
+
+                if (response.ok) {
+                    const audioBlob = await response.blob();
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const audio = new Audio(audioUrl);
+                    audio.play();
+                } else {
+                    console.error('TTS Error:', response.status);
+                }
+            } catch (e) {
+                console.error('TTS Fetch Error:', e);
+            }
 
             // AI Reply Simulation
             setTimeout(() => {

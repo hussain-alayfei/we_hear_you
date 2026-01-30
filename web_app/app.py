@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file, abort
+from flask import Flask, render_template, request, jsonify, send_file, abort, Response
 from inference_classifier import SignLanguageClassifier
 from surah_data import SURAHS, get_all_surahs, get_surah, is_surah_unlocked
 import cv2
@@ -6,6 +6,7 @@ import numpy as np
 import base64
 import os
 import glob
+import requests
 
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False  # Ensure Arabic characters are not escaped in JSON
@@ -176,6 +177,53 @@ def predict():
     except Exception as e:
         # Return valid JSON even on error
         return jsonify({'error': str(e), 'prediction': None, 'landmarks': []}), 200
+
+# ============================================
+# TEXT-TO-SPEECH (ElevenLabs API)
+# ============================================
+ELEVENLABS_API_KEY = "sk_a29dcc8f5bc1c17879dcd07c21dfbb559a382040f2947f5f"
+ELEVENLABS_VOICE_ID = "Jkgj7lZ9O8Am0h71d9fq"
+
+@app.route('/tts', methods=['POST'])
+def text_to_speech():
+    """
+    Convert Arabic text to speech using ElevenLabs Turbo v2.5 model
+    Expects JSON body: { "text": "مرحبا" }
+    Returns: audio/mpeg stream
+    """
+    try:
+        data = request.get_json()
+        text = data.get('text', '') if data else ''
+        
+        if not text:
+            return jsonify({'error': 'No text provided'}), 400
+        
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}"
+        headers = {
+            "xi-api-key": ELEVENLABS_API_KEY,
+            "Content-Type": "application/json",
+            "Accept": "audio/mpeg"
+        }
+        payload = {
+            "text": text,
+            "model_id": "eleven_turbo_v2_5",
+            "voice_settings": {
+                "stability": 0.5,
+                "similarity_boost": 0.75
+            }
+        }
+        
+        response = requests.post(url, json=payload, headers=headers)
+        
+        if response.status_code == 200:
+            return Response(response.content, mimetype='audio/mpeg')
+        else:
+            print(f"ElevenLabs API error: {response.status_code} - {response.text}")
+            return jsonify({'error': 'TTS failed', 'status': response.status_code}), 500
+            
+    except Exception as e:
+        print(f"TTS Error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
