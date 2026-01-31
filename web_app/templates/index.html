@@ -262,7 +262,7 @@
             class="fixed bottom-6 inset-x-0 mx-auto w-[90%] max-w-[400px] bg-white rounded-[2.5rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)] py-2 px-4 flex justify-around items-center z-50 animate-fade-in-up stagger-3 border border-slate-50 ring-1 ring-black/5">
 
             <!-- History Button -->
-            <button
+            <button id="historyBtn" onclick="showChatHistoryView()"
                 class="flex flex-col items-center justify-center gap-1 group w-14 h-14 rounded-2xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
                 <div class="text-slate-400 group-hover:text-[#2563EB] transition-colors p-1">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -305,6 +305,28 @@
         </nav>
 
         </nav>
+    </div>
+
+    <!-- CHAT HISTORY VIEW -->
+    <div id="chatHistoryView" class="fixed inset-0 z-[110] w-full h-full bg-white hidden flex-col overflow-y-auto">
+        <!-- Header -->
+        <header
+            class="bg-white/90 backdrop-blur-md border-b border-slate-100 px-4 py-3 flex items-center justify-between z-40 sticky top-0">
+            <button onclick="backToLandingFromHistory()" class="p-2 rounded-full hover:bg-slate-100 text-slate-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+            </button>
+            <h1 class="text-lg font-bold text-slate-800 font-arabic">سجل المحادثات</h1>
+            <div class="w-10"></div>
+        </header>
+
+        <!-- Chat History List -->
+        <main class="flex-1 px-4 pb-4 pt-4">
+            <div id="chatHistoryList" class="flex flex-col gap-3">
+                <!-- Will be populated dynamically -->
+            </div>
+        </main>
     </div>
 
     <!-- SURAH SELECTION VIEW -->
@@ -524,9 +546,9 @@
 
                         <!-- Overlay: Status (Top Left) -->
                         <div
-                            class="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white/90 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 z-10">
+                            class="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white/90 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 z-10 font-arabic">
                             <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                            <span>Live</span>
+                            <span>مباشر</span>
                         </div>
 
                         <!-- DETECTED LETTER BADGE (Top Right - Like Original) -->
@@ -632,7 +654,7 @@
                                 مشاهدة الشرح</h3>
                             <div class="flex items-center gap-2">
                                 <span
-                                    class="bg-[#FF0000] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">YouTube</span>
+                                    class="bg-[#FF0000] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm font-arabic">يوتيوب</span>
                                 <p class="text-slate-400 text-xs font-bold font-arabic">شرح تفاعلي من المعلم</p>
                             </div>
                         </div>
@@ -1564,9 +1586,253 @@
         // CONVERSATION MODE SELECTION
         // ============================================
         // ============================================
+        // CHAT PERSISTENCE (LocalStorage) - MULTI-SESSION
+        // ============================================
+        let currentChatId = null;
+
+        function generateChatId() {
+            return 'chat-' + Date.now();
+        }
+
+        function getAllChats() {
+            return JSON.parse(localStorage.getItem('allChats') || '[]');
+        }
+
+        function saveAllChats(chats) {
+            localStorage.setItem('allChats', JSON.stringify(chats));
+        }
+
+        function getCurrentChat() {
+            if (!currentChatId) return null;
+            const chats = getAllChats();
+            return chats.find(chat => chat.id === currentChatId);
+        }
+
+        function saveCurrentChatSession() {
+            if (!currentChatId) return;
+            
+            const chats = getAllChats();
+            const chatIndex = chats.findIndex(chat => chat.id === currentChatId);
+            const chatMessages = document.getElementById('chatMessages');
+            
+            // Count messages
+            const messageCount = chatMessages ? chatMessages.children.length : 0;
+            
+            // Get first message preview
+            let preview = 'محادثة فارغة';
+            if (messageCount > 0) {
+                const firstMsg = chatMessages.children[0];
+                const textEl = firstMsg.querySelector('.font-black.text-right');
+                if (textEl) {
+                    preview = textEl.textContent.substring(0, 50);
+                }
+            }
+            
+            const chatData = {
+                id: currentChatId,
+                timestamp: Date.now(),
+                preview: preview,
+                messageCount: messageCount,
+                messages: getCurrentChatMessages()
+            };
+
+            if (chatIndex >= 0) {
+                chats[chatIndex] = chatData;
+            } else {
+                chats.push(chatData);
+            }
+            
+            saveAllChats(chats);
+        }
+
+        function getCurrentChatMessages() {
+            const history = JSON.parse(localStorage.getItem('chatHistory-' + currentChatId) || '[]');
+            return history;
+        }
+
+        function saveChatToLocalStorage(msg) {
+            if (!currentChatId) return;
+            let history = JSON.parse(localStorage.getItem('chatHistory-' + currentChatId) || '[]');
+            history.push(msg);
+            localStorage.setItem('chatHistory-' + currentChatId, JSON.stringify(history));
+            saveCurrentChatSession();
+        }
+
+        function loadChatFromLocalStorage(chatId) {
+            if (!chatId) return;
+            currentChatId = chatId;
+            const history = JSON.parse(localStorage.getItem('chatHistory-' + chatId) || '[]');
+            const chatMessages = document.getElementById('chatMessages');
+            if (!chatMessages) return;
+
+            chatMessages.innerHTML = '';
+            history.forEach(msg => {
+                appendMessageToUI(msg.text, msg.type, msg.alignment, msg.timestamp, msg.id, false);
+            });
+        }
+
+        function deleteChat(chatId) {
+            const chats = getAllChats();
+            const filtered = chats.filter(chat => chat.id !== chatId);
+            saveAllChats(filtered);
+            localStorage.removeItem('chatHistory-' + chatId);
+            
+            // If deleting current chat, clear it
+            if (currentChatId === chatId) {
+                currentChatId = null;
+                const chatMessages = document.getElementById('chatMessages');
+                if (chatMessages) chatMessages.innerHTML = '';
+            }
+            
+            renderChatHistory();
+        }
+
+        function renderChatHistory() {
+            const chats = getAllChats();
+            const container = document.getElementById('chatHistoryList');
+            if (!container) return;
+
+            // Sort by timestamp (newest first)
+            chats.sort((a, b) => b.timestamp - a.timestamp);
+
+            if (chats.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-16 px-4">
+                        <svg class="w-20 h-20 mx-auto mb-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                        </svg>
+                        <h2 class="font-arabic text-xl font-bold text-slate-700 mb-2">لا توجد محادثات سابقة</h2>
+                        <p class="font-arabic text-sm text-slate-400 mb-6">ابدأ محادثة جديدة الآن</p>
+                        <button onclick="backToLandingFromHistory(); startNewChat();" 
+                            class="px-6 py-3 bg-blue-600 text-white rounded-full font-arabic font-bold hover:bg-blue-700 transition-colors shadow-lg">
+                            محادثة جديدة
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = chats.map(chat => {
+                const date = new Date(chat.timestamp);
+                const dateStr = date.toLocaleDateString('ar-EG', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                return `
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-all">
+                        <div onclick="loadChatSession('${chat.id}')" class="p-4 cursor-pointer">
+                            <div class="flex items-start justify-between mb-2">
+                                <div class="flex-1">
+                                    <p class="font-black text-slate-800 text-right mb-1 line-clamp-2">${chat.preview}</p>
+                                    <p class="text-xs text-slate-400 text-right">${dateStr} • ${chat.messageCount} رسالة</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="border-t border-slate-100 px-4 py-2 bg-slate-50 flex justify-end gap-2">
+                            <button onclick="event.stopPropagation(); deleteChat('${chat.id}')" 
+                                class="text-xs px-3 py-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors font-arabic font-bold">
+                                حذف
+                            </button>
+                            <button onclick="loadChatSession('${chat.id}')" 
+                                class="text-xs px-3 py-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors font-arabic font-bold">
+                                فتح
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function loadChatSession(chatId) {
+            loadChatFromLocalStorage(chatId);
+            showChatView();
+        }
+
+        function showChatHistoryView() {
+            renderChatHistory();
+            document.getElementById('chatHistoryView').classList.remove('hidden');
+            document.getElementById('chatHistoryView').classList.add('flex');
+        }
+
+        function backToLandingFromHistory() {
+            document.getElementById('chatHistoryView').classList.add('hidden');
+            document.getElementById('chatHistoryView').classList.remove('flex');
+        }
+
+        function appendMessageToUI(text, type, alignment, timestamp, msgId, shouldPersist = true) {
+            const chatMessages = document.getElementById('chatMessages');
+            if (!chatMessages) return;
+
+            const signsHtml = generateSignsHtml(text, msgId);
+            const msgDiv = document.createElement('div');
+
+            if (alignment === 'left') {
+                msgDiv.className = "flex justify-start animate-fade-in-up";
+                msgDiv.innerHTML = `
+                    <div class="bg-blue-600 text-white rounded-[2rem] rounded-tl-lg py-4 px-6 max-w-[95%] md:max-w-lg shadow-md text-lg">
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="flex items-center gap-2">
+                                 <button onclick="toggleSigns('${msgId}')" class="p-2.5 hover:bg-white/20 rounded-full transition-all active:scale-90 text-white shadow-sm" title="عرض لغة الإشارة">
+                                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0V12m-3 .5a1.5 1.5 0 003 0M10 12V5.5a1.5 1.5 0 113 0V12m-3 0a1.5 1.5 0 003 0M13 12V6.5a1.5 1.5 0 113 0V12m-3 0a1.5 1.5 0 003 0m0 0V9.5a1.5 1.5 0 113 0V12a7 7 0 11-14 0"></path>
+                                    </svg>
+                                </button>
+                            <button onclick="speakText(this, '${text.replace(/'/g, "\\'")}')" class="p-2 hover:bg-white/20 rounded-full transition-all active:scale-90 text-white" title="استماع">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M12 18.75l-3.75-3.75H4.5A1.5 1.5 0 013 13.5v-3a1.5 1.5 0 011.5-1.5h3.75L12 5.25v13.5z"></path>
+                                </svg>
+                                </button>
+                            </div>
+                            <div class="font-black text-right flex-1 text-xl drop-shadow-sm">${text}</div>
+                        </div>
+                        ${signsHtml}
+                        <div class="text-[10px] opacity-70 mt-2 text-right">${timestamp}</div>
+                    </div>
+                `;
+            } else {
+                msgDiv.className = "flex justify-end animate-fade-in-up";
+                msgDiv.innerHTML = `
+                    <div class="bg-blue-100 text-slate-800 rounded-[2rem] rounded-tr-lg py-4 px-6 max-w-[95%] md:max-w-lg shadow-sm text-lg border border-blue-200">
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="flex items-center gap-2">
+                                 <button onclick="toggleSigns('${msgId}')" class="p-2.5 hover:bg-white rounded-full transition-all active:scale-90 text-blue-600 shadow-md bg-white/80 ring-1 ring-blue-100" title="عرض لغة الإشارة">
+                                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0V12m-3 .5a1.5 1.5 0 003 0M10 12V5.5a1.5 1.5 0 113 0V12m-3 0a1.5 1.5 0 003 0M13 12V6.5a1.5 1.5 0 113 0V12m-3 0a1.5 1.5 0 003 0m0 0V9.5a1.5 1.5 0 113 0V12a7 7 0 11-14 0"></path>
+                                    </svg>
+                                </button>
+                                <button onclick="speakText(this, '${text.replace(/'/g, "\\'")}')" class="p-2.5 hover:bg-white rounded-full transition-all active:scale-90 text-slate-600 shadow-md bg-white/80 ring-1 ring-slate-100" title="استماع">
+                                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M12 18.75l-3.75-3.75H4.5A1.5 1.5 0 013 13.5v-3a1.5 1.5 0 011.5-1.5h3.75L12 5.25v13.5z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="font-black text-right flex-1 text-xl drop-shadow-sm">${text}</div>
+                        </div>
+                        ${signsHtml}
+                        <div class="text-[10px] opacity-70 mt-2 text-right">${timestamp}</div>
+                    </div>
+                `;
+            }
+
+            chatMessages.appendChild(msgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            if (shouldPersist) {
+                saveChatToLocalStorage({ text, type, alignment, timestamp, id: msgId });
+            }
+        }
+
+        // ============================================
         // CHAT INTERFACE
         // ============================================
         window.startNewChat = function () {
+            // Create new chat session
+            currentChatId = generateChatId();
+            
             // Clear chat messages for a "New Chat" experience
             const chatMessages = document.getElementById('chatMessages');
             if (chatMessages) chatMessages.innerHTML = '';
@@ -1580,6 +1846,11 @@
         }
 
         window.showChatView = function () {
+            // If no current chat, create one
+            if (!currentChatId) {
+                currentChatId = generateChatId();
+            }
+            
             document.getElementById('chatView').classList.remove('hidden');
             document.getElementById('chatView').classList.add('flex');
 
@@ -1590,6 +1861,9 @@
         window.hideChatView = function () {
             document.getElementById('chatView').classList.add('hidden');
             document.getElementById('chatView').classList.remove('flex');
+            
+            // Save current session before hiding
+            saveCurrentChatSession();
         }
 
         // ============================================
@@ -1654,7 +1928,7 @@
                 })
                 .catch(err => {
                     console.error("Camera access denied:", err);
-                    alert("Please allow camera access to use Sign Language mode.");
+                    alert("الرجاء السماح بالوصول للكاميرا لاستخدام وضع لغة الإشارة.");
                 });
         }
 
@@ -1857,36 +2131,10 @@
 
             const textToSpeak = currentDraftText.trim();
             const msgId = 'msg-' + Date.now();
-            const signsHtml = generateSignsHtml(textToSpeak, msgId);
             const timeStr = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
 
-            // Add to chat UI (Sign Language output -> LEFT)
-            const chatMessages = document.getElementById('chatMessages');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = "flex justify-start animate-fade-in-up";
-            msgDiv.innerHTML = `
-                <div class="bg-blue-600 text-white rounded-[2rem] rounded-tl-lg py-4 px-6 max-w-[95%] md:max-w-lg shadow-md text-lg">
-                    <div class="flex items-center justify-between gap-4">
-                        <div class="flex items-center gap-2">
-                             <button onclick="toggleSigns('${msgId}')" class="p-2.5 hover:bg-white/20 rounded-full transition-all active:scale-90 text-white shadow-sm" title="عرض لغة الإشارة">
-                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0V12m-3 .5a1.5 1.5 0 003 0M10 12V5.5a1.5 1.5 0 113 0V12m-3 0a1.5 1.5 0 003 0M13 12V6.5a1.5 1.5 0 113 0V12m-3 0a1.5 1.5 0 003 0m0 0V9.5a1.5 1.5 0 113 0V12a7 7 0 11-14 0"></path>
-                                </svg>
-                            </button>
-                        <button onclick="speakText(this, '${textToSpeak.replace(/'/g, "\\'")}')" class="p-2 hover:bg-white/20 rounded-full transition-all active:scale-90 text-white" title="استماع">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M12 18.75l-3.75-3.75H4.5A1.5 1.5 0 013 13.5v-3a1.5 1.5 0 011.5-1.5h3.75L12 5.25v13.5z"></path>
-                            </svg>
-                            </button>
-                        </div>
-                        <div class="font-black text-right flex-1 text-xl drop-shadow-sm">${textToSpeak}</div>
-                    </div>
-                    ${signsHtml}
-                    <div class="text-[10px] opacity-70 mt-2 text-right">${timeStr}</div>
-                </div>
-            `;
-            chatMessages.appendChild(msgDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            // Add to chat UI and persist (Sign Language output -> LEFT)
+            appendMessageToUI(textToSpeak, 'sign', 'left', timeStr, msgId);
 
             // Clear Draft immediately
             currentDraftText = "";
@@ -1902,36 +2150,10 @@
 
             const textToSend = input.value.trim();
             const msgId = 'msg-' + Date.now();
-            const signsHtml = generateSignsHtml(textToSend, msgId);
             const timeStr = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
 
-            // Add to chat UI (Text output -> RIGHT)
-            const chatMessages = document.getElementById('chatMessages');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = "flex justify-end animate-fade-in-up";
-            msgDiv.innerHTML = `
-                <div class="bg-blue-100 text-slate-800 rounded-[2rem] rounded-tr-lg py-4 px-6 max-w-[95%] md:max-w-lg shadow-sm text-lg border border-blue-200">
-                    <div class="flex items-center justify-between gap-4">
-                        <div class="flex items-center gap-2">
-                             <button onclick="toggleSigns('${msgId}')" class="p-2.5 hover:bg-white rounded-full transition-all active:scale-90 text-blue-600 shadow-md bg-white/80 ring-1 ring-blue-100" title="عرض لغة الإشارة">
-                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0V12m-3 .5a1.5 1.5 0 003 0M10 12V5.5a1.5 1.5 0 113 0V12m-3 0a1.5 1.5 0 003 0M13 12V6.5a1.5 1.5 0 113 0V12m-3 0a1.5 1.5 0 003 0m0 0V9.5a1.5 1.5 0 113 0V12a7 7 0 11-14 0"></path>
-                                </svg>
-                            </button>
-                            <button onclick="speakText(this, '${textToSend.replace(/'/g, "\\'")}')" class="p-2.5 hover:bg-white rounded-full transition-all active:scale-90 text-slate-600 shadow-md bg-white/80 ring-1 ring-slate-100" title="استماع">
-                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M12 18.75l-3.75-3.75H4.5A1.5 1.5 0 013 13.5v-3a1.5 1.5 0 011.5-1.5h3.75L12 5.25v13.5z"></path>
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="font-black text-right flex-1 text-xl drop-shadow-sm">${textToSend}</div>
-                    </div>
-                    ${signsHtml}
-                    <div class="text-[10px] opacity-70 mt-2 text-right">${timeStr}</div>
-                </div>
-            `;
-            chatMessages.appendChild(msgDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            // Add to chat UI and persist (Text output -> RIGHT)
+            appendMessageToUI(textToSend, 'text', 'right', timeStr, msgId);
 
             // Clear input
             input.value = "";
@@ -2202,6 +2424,10 @@
         window.sendTextMessage = sendTextMessage;
         window.toggleSigns = toggleSigns;
         window.speakText = speakText;
+        window.deleteChat = deleteChat;
+        window.loadChatSession = loadChatSession;
+        window.showChatHistoryView = showChatHistoryView;
+        window.backToLandingFromHistory = backToLandingFromHistory;
 
         window.toggleInputMode = function (mode) {
             const tabText = document.getElementById('tabText');
@@ -2375,7 +2601,7 @@
                 startCamera();
             } catch (e) {
                 console.error("AI Init Failed:", e);
-                alert("Could not load AI model. Please refresh.");
+                alert("فشل تحميل نموذج الذكاء الاصطناعي. الرجاء إعادة تحميل الصفحة.");
             }
         }
 
@@ -2404,7 +2630,7 @@
                 video.addEventListener("loadeddata", predictWebcam);
             }).catch(e => {
                 console.error("Camera denied:", e);
-                alert("Camera access denied. Please allow camera access.");
+                alert("تم رفض الوصول للكاميرا. الرجاء السماح بالوصول للكاميرا.");
             });
         }
 
