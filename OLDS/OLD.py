@@ -62,41 +62,6 @@ class SignLanguageClassifier:
             29: 'لا', 
         }
 
-    def predict_from_landmarks(self, landmarks_list):
-        """
-        Predict sign from raw landmark list (JSON) instead of an image.
-        landmarks_list: List of dictionaries [{'x': 0.5, 'y': 0.5}, ...] (21 points)
-        """
-        if not landmarks_list or len(landmarks_list) == 0:
-            return None
-
-        # Process the first hand's landmarks
-        data_aux = []
-        x_ = []
-        y_ = []
-
-        for landmark in landmarks_list:
-            x_.append(landmark['x'])
-            y_.append(landmark['y'])
-
-        for landmark in landmarks_list:
-            data_aux.append(landmark['x'] - min(x_))
-            data_aux.append(landmark['y'] - min(y_))
-
-        try:
-            prediction = self.model.predict([np.asarray(data_aux)])
-            label_key = prediction[0]
-            
-            # Label lookup
-            try:
-                key_int = int(label_key)
-                return self.labels_dict.get(key_int, label_key)
-            except:
-                return self.labels_dict.get(label_key, label_key)
-        except Exception as e:
-            print(f"Prediction error from landmarks: {e}")
-            return None
-
     def predict(self, frame_rgb):
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
         detection_result = self.detector.detect(mp_image)
