@@ -1610,14 +1610,14 @@
 
         function saveCurrentChatSession() {
             if (!currentChatId) return;
-            
+
             const chats = getAllChats();
             const chatIndex = chats.findIndex(chat => chat.id === currentChatId);
             const chatMessages = document.getElementById('chatMessages');
-            
+
             // Count messages
             const messageCount = chatMessages ? chatMessages.children.length : 0;
-            
+
             // Get first message preview
             let preview = 'محادثة فارغة';
             if (messageCount > 0) {
@@ -1627,7 +1627,7 @@
                     preview = textEl.textContent.substring(0, 50);
                 }
             }
-            
+
             const chatData = {
                 id: currentChatId,
                 timestamp: Date.now(),
@@ -1641,7 +1641,7 @@
             } else {
                 chats.push(chatData);
             }
-            
+
             saveAllChats(chats);
         }
 
@@ -1676,14 +1676,14 @@
             const filtered = chats.filter(chat => chat.id !== chatId);
             saveAllChats(filtered);
             localStorage.removeItem('chatHistory-' + chatId);
-            
+
             // If deleting current chat, clear it
             if (currentChatId === chatId) {
                 currentChatId = null;
                 const chatMessages = document.getElementById('chatMessages');
                 if (chatMessages) chatMessages.innerHTML = '';
             }
-            
+
             renderChatHistory();
         }
 
@@ -1714,9 +1714,9 @@
 
             container.innerHTML = chats.map(chat => {
                 const date = new Date(chat.timestamp);
-                const dateStr = date.toLocaleDateString('ar-EG', { 
-                    year: 'numeric', 
-                    month: 'long', 
+                const dateStr = date.toLocaleDateString('ar-EG', {
+                    year: 'numeric',
+                    month: 'long',
                     day: 'numeric',
                     hour: '2-digit',
                     minute: '2-digit'
@@ -1832,7 +1832,7 @@
         window.startNewChat = function () {
             // Create new chat session
             currentChatId = generateChatId();
-            
+
             // Clear chat messages for a "New Chat" experience
             const chatMessages = document.getElementById('chatMessages');
             if (chatMessages) chatMessages.innerHTML = '';
@@ -1850,7 +1850,7 @@
             if (!currentChatId) {
                 currentChatId = generateChatId();
             }
-            
+
             document.getElementById('chatView').classList.remove('hidden');
             document.getElementById('chatView').classList.add('flex');
 
@@ -1861,7 +1861,7 @@
         window.hideChatView = function () {
             document.getElementById('chatView').classList.add('hidden');
             document.getElementById('chatView').classList.remove('flex');
-            
+
             // Save current session before hiding
             saveCurrentChatSession();
         }
