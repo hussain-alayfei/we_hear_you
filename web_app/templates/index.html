@@ -186,7 +186,16 @@
 
                 <!-- Header / Greeting Area -->
                 <div class="flex items-center justify-between mb-10 animate-fade-in-up stagger-1 pt-4 md:pt-8 w-full">
-                    <!-- Greeting (Right in RTL) -->
+                    <!-- Profile Icon (Left/End in RTL) -->
+                    <div
+                        class="w-12 h-12 md:w-14 md:h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-slate-600 border border-slate-100 shadow-sm hover:bg-gray-100 transition-colors cursor-pointer">
+                        <svg class="w-6 h-6 md:w-7 md:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                    </div>
+
+                    <!-- Greeting (Right/Start in RTL) -->
                     <div class="text-right">
                         <div class="flex items-center gap-2 justify-start">
                             <h1 class="text-2xl md:text-4xl font-black text-slate-900 font-arabic">مرحباً</h1>
@@ -194,15 +203,6 @@
                         </div>
                         <p class="text-slate-400 text-xs md:text-base font-bold font-arabic mt-1">جاهز للتواصل اليوم؟
                         </p>
-                    </div>
-
-                    <!-- Profile Icon (Left in RTL) -->
-                    <div
-                        class="w-12 h-12 md:w-14 md:h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-slate-600 border border-slate-100 shadow-sm hover:bg-gray-100 transition-colors cursor-pointer">
-                        <svg class="w-6 h-6 md:w-7 md:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                        </svg>
                     </div>
                 </div>
 
@@ -253,20 +253,15 @@
         <nav
             class="fixed bottom-6 inset-x-0 mx-auto w-[90%] max-w-[360px] bg-white rounded-[2rem] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] py-3 px-6 flex justify-between items-center z-50 animate-fade-in-up stagger-3 border border-slate-50 ring-1 ring-black/5">
 
-            <!-- Settings Button (Left in RTL) -->
+            <!-- Home Button (Active - Right/Start in RTL) -->
             <button
-                class="flex flex-col items-center justify-center gap-1 group w-14 h-14 rounded-2xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
-                <div class="text-slate-400 group-hover:text-[#2563EB] transition-colors p-1">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
-                        </path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    </svg>
-                </div>
-                <span
-                    class="text-[10px] font-bold text-slate-400 group-hover:text-[#2563EB] font-arabic hidden md:block">الإعدادات</span>
+                class="flex flex-col items-center justify-center bg-[#2563EB] text-white rounded-2xl w-14 h-14 shadow-lg shadow-blue-500/30 transform hover:scale-105 transition-transform active:scale-95">
+                <svg class="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
+                    </path>
+                </svg>
+                <span class="text-[9px] font-black font-arabic">الرئيسية</span>
             </button>
 
             <!-- History Button (Center) -->
@@ -282,16 +277,22 @@
                     class="text-[10px] font-bold text-slate-400 group-hover:text-[#2563EB] font-arabic hidden md:block">السجل</span>
             </button>
 
-            <!-- Home Button (Active - Right in RTL) -->
+            <!-- Settings Button (Left/End in RTL) -->
             <button
-                class="flex flex-col items-center justify-center bg-[#2563EB] text-white rounded-2xl w-14 h-14 shadow-lg shadow-blue-500/30 transform hover:scale-105 transition-transform active:scale-95">
-                <svg class="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
-                    </path>
-                </svg>
-                <span class="text-[9px] font-black font-arabic">الرئيسية</span>
+                class="flex flex-col items-center justify-center gap-1 group w-14 h-14 rounded-2xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
+                <div class="text-slate-400 group-hover:text-[#2563EB] transition-colors p-1">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                        </path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                </div>
+                <span
+                    class="text-[10px] font-bold text-slate-400 group-hover:text-[#2563EB] font-arabic hidden md:block">الإعدادات</span>
             </button>
+        </nav>
 
         </nav>
     </div>
@@ -303,7 +304,7 @@
             class="bg-white/90 backdrop-blur-md border-b border-slate-100 px-4 py-3 flex items-center justify-between z-40 sticky top-0">
             <button onclick="backToLanding()" class="p-2 rounded-full hover:bg-slate-100 text-slate-600">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                 </svg>
             </button>
             <h1 class="text-lg font-bold text-slate-800">اختر السورة للتدريب</h1>
@@ -345,7 +346,28 @@
 
         <!-- Chat Header -->
         <header class="bg-white px-4 py-3 flex items-center justify-between shadow-sm sticky top-0 z-40">
-            <!-- Right Actions (Menu & Book) -->
+            <!-- Right Back Button (Start in RTL) -->
+            <button onclick="hideChatView()" class="p-2 hover:bg-slate-50 rounded-full text-slate-900">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3">
+                    </path>
+                </svg>
+            </button>
+
+            <!-- Center Title -->
+            <div class="text-center">
+                <h2 class="text-slate-900 font-black text-lg leading-tight">محادثة نشطة</h2>
+                <div class="flex items-center justify-center gap-1.5 opacity-80">
+                    <span class="relative flex h-2 w-2">
+                        <span
+                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                    <span class="text-[10px] font-bold tracking-widest text-slate-500 uppercase">LIVE TRANSLATION</span>
+                </div>
+            </div>
+
+            <!-- Left Actions (Menu & Book - End in RTL) -->
             <div class="flex items-center gap-3 text-slate-600">
                 <button class="p-2 hover:bg-slate-50 rounded-full">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -362,28 +384,6 @@
                     </svg>
                 </button>
             </div>
-
-            <!-- Center Title -->
-            <div class="text-center">
-                <h2 class="text-slate-900 font-black text-lg leading-tight">محادثة نشطة</h2>
-                <div class="flex items-center justify-center gap-1.5 opacity-80">
-                    <span class="relative flex h-2 w-2">
-                        <span
-                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                    </span>
-                    <span class="text-[10px] font-bold tracking-widest text-slate-500 uppercase">LIVE TRANSLATION</span>
-                </div>
-            </div>
-
-            <!-- Left Back Button -->
-            <button onclick="hideChatView()"
-                class="p-2 hover:bg-slate-50 rounded-full text-slate-900 transform rotate-180">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-            </button>
         </header>
 
         <!-- Chat Messages Area -->
@@ -490,8 +490,9 @@
 
                     <!-- Send Button (Circle) - Left/End -->
                     <button id="sendChatTextBtn" onclick="sendTextMessage()"
-                        class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-blue-500/30 transform rotate-180 hover:bg-blue-700 transition-all active:scale-95 shrink-0">
-                        <svg class="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-all active:scale-95 shrink-0">
+                        <svg class="w-5 h-5 ml-1 transform rotate-[215deg]" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
                         </svg>
@@ -568,7 +569,7 @@
                         <!-- Send Message Button -->
                         <button onclick="sendDraftMessage()"
                             class="col-span-1 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl py-3.5 flex items-center justify-center shadow-lg shadow-blue-200 active:scale-95 transition-all">
-                            <svg class="w-6 h-6 transform rotate-180" fill="none" stroke="currentColor"
+                            <svg class="w-6 h-6 transform rotate-[215deg]" fill="none" stroke="currentColor"
                                 viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
@@ -786,7 +787,7 @@
             class="bg-white/90 backdrop-blur-md border-b border-slate-100 px-4 py-3 flex items-center justify-between z-40 sticky top-0">
             <button onclick="closeApp()" class="p-2 rounded-full hover:bg-slate-100 text-slate-600">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                 </svg>
             </button>
             <h1 class="text-lg font-bold text-slate-800">التدريب المباشر</h1>
