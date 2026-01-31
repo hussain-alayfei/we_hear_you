@@ -1573,23 +1573,37 @@
                 });
         }
 
+        // Cached elements for tracking loop
+        let cachedChatVideo = null;
+        let cachedChatCanvas = null;
+        let cachedChatCtx = null;
+
 
         // High-performance loop using requestVideoFrameCallback
         async function processSafeChatFrameCallback(now, metadata) {
             if (!safeChatMode) return;
-            const video = document.getElementById('chatVideoElement');
-            const canvas = document.getElementById('chatCanvasElement');
-            const ctx = canvas.getContext('2d');
 
-            await performSafeChatTracking(video, canvas, ctx);
+            // CACHE check
+            if (!cachedChatVideo) {
+                cachedChatVideo = document.getElementById('chatVideoElement');
+                cachedChatCanvas = document.getElementById('chatCanvasElement');
+                cachedChatCtx = cachedChatCanvas.getContext('2d');
+            }
+
+            await performSafeChatTracking(cachedChatVideo, cachedChatCanvas, cachedChatCtx);
 
             // Loop
-            video.requestVideoFrameCallback(processSafeChatFrameCallback);
+            cachedChatVideo.requestVideoFrameCallback(processSafeChatFrameCallback);
         }
 
         async function processSafeChatFrame(video, canvas, ctx) {
             if (!safeChatMode) return;
-            await performSafeChatTracking(video, canvas, ctx);
+
+            // Check for new frame even in fallback loop
+            if (video.currentTime !== lastSafeChatVideoTime) {
+                await performSafeChatTracking(video, canvas, ctx);
+            }
+
             requestAnimationFrame(() => processSafeChatFrame(video, canvas, ctx));
         }
 
@@ -1599,19 +1613,23 @@
 
             const now = Date.now();
 
-            // 2. Client-Side SKELETON Tracking (Synchronized)
+            // 2. Client-Side SKELETON Tracking (Synchronized & Cached)
             if (typeof handLandmarker !== 'undefined' && handLandmarker && video.videoWidth > 0) {
-                try {
-                    const startTimeMs = performance.now();
-                    const results = handLandmarker.detectForVideo(video, startTimeMs);
+                // OPTIMIZATION: ONLY process if it's a new video frame to save CPU/GPU
+                if (video.currentTime !== lastSafeChatVideoTime) {
+                    lastSafeChatVideoTime = video.currentTime;
+                    try {
+                        const startTimeMs = performance.now();
+                        const results = handLandmarker.detectForVideo(video, startTimeMs);
 
-                    if (results.landmarks && results.landmarks.length > 0) {
-                        lastLandmarks = results.landmarks; // Use raw results for instant speed
-                    } else {
-                        lastLandmarks = null;
+                        if (results.landmarks && results.landmarks.length > 0) {
+                            lastLandmarks = results.landmarks; // Use raw results for instant speed
+                        } else {
+                            lastLandmarks = null;
+                        }
+                    } catch (e) {
+                        console.error("Chat tracking error:", e);
                     }
-                } catch (e) {
-                    console.error("Chat tracking error:", e);
                 }
             }
 
@@ -1701,50 +1719,12 @@
             }
         }
 
-        async function sendDraftMessage() {
-            if (!currentDraftText.trim()) return;
-
-            const textToSpeak = currentDraftText.trim();
-
-            // Add to chat UI (Sign Language output -> LEFT) - SIMPLE TEXT ONLY
-            const chatMessages = document.getElementById('chatMessages');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = "flex justify-start animate-fade-in-up";
-            msgDiv.innerHTML = `
-                <div class="bg-blue-600 text-white rounded-[2rem] rounded-tl-lg py-3 px-6 max-w-xs md:max-w-md shadow-md text-lg font-bold">
-                    <div class="flex items-center gap-3">
-                        <div class="flex-1 text-right">${textToSpeak}</div>
-                        <button onclick="speakText('${textToSpeak.replace(/'/g, "\\'")}')" class="p-2 hover:bg-white/20 rounded-full transition-all active:scale-90 text-white" title="استماع">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M12 18.75l-3.75-3.75H4.5A1.5 1.5 0 013 13.5v-3a1.5 1.5 0 011.5-1.5h3.75L12 5.25v13.5z"></path>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            `;
-            chatMessages.appendChild(msgDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-
-            // Clear Draft immediately
-            currentDraftText = "";
-            updateDraftDisplay();
-
-            // Auto-play audio
-            speakText(textToSpeak);
-        }
-
-        async function sendTextMessage() {
-            const input = document.getElementById('chatTextInput');
-            if (!input || !input.value.trim()) return;
-
-            const textToSend = input.value.trim();
-            const msgId = 'msg-' + Date.now();
-            const words = textToSend.split(/\s+/);
-
+        function generateSignsHtml(text, msgId) {
+            const words = text.split(/\s+/);
             // Generate sign images HTML (Word-by-Word grouping, Larger Images)
             let signsHtml = `<div id="signs-${msgId}" class="hidden flex flex-col gap-2 mb-2 mt-4 p-4 bg-white/60 rounded-2xl border border-blue-100 animate-fade-in" dir="rtl">`;
 
-            words.forEach((word, wordIdx) => {
+            words.forEach((word) => {
                 if (!word) return;
 
                 signsHtml += `
@@ -1773,6 +1753,61 @@
             });
 
             signsHtml += '</div>';
+            return signsHtml;
+        }
+
+        async function sendDraftMessage() {
+            if (!currentDraftText.trim()) return;
+
+            const textToSpeak = currentDraftText.trim();
+            const msgId = 'msg-' + Date.now();
+            const signsHtml = generateSignsHtml(textToSpeak, msgId);
+            const timeStr = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+
+            // Add to chat UI (Sign Language output -> LEFT)
+            const chatMessages = document.getElementById('chatMessages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = "flex justify-start animate-fade-in-up";
+            msgDiv.innerHTML = `
+                <div class="bg-blue-600 text-white rounded-[2rem] rounded-tl-lg py-4 px-6 max-w-[95%] md:max-w-lg shadow-md text-lg">
+                    <div class="flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-2">
+                             <button onclick="toggleSigns('${msgId}')" class="p-2.5 hover:bg-white/20 rounded-full transition-all active:scale-90 text-white shadow-sm" title="عرض لغة الإشارة">
+                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0V12m-3 .5a1.5 1.5 0 003 0M10 12V5.5a1.5 1.5 0 113 0V12m-3 0a1.5 1.5 0 003 0M13 12V6.5a1.5 1.5 0 113 0V12m-3 0a1.5 1.5 0 003 0m0 0V9.5a1.5 1.5 0 113 0V12a7 7 0 11-14 0"></path>
+                                </svg>
+                            </button>
+                            <button onclick="speakText('${textToSpeak.replace(/'/g, "\\'")}')" class="p-2.5 hover:bg-white/20 rounded-full transition-all active:scale-90 text-white" title="استماع">
+                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M12 18.75l-3.75-3.75H4.5A1.5 1.5 0 013 13.5v-3a1.5 1.5 0 011.5-1.5h3.75L12 5.25v13.5z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="font-black text-right flex-1 text-xl drop-shadow-sm">${textToSpeak}</div>
+                    </div>
+                    ${signsHtml}
+                    <div class="text-[10px] opacity-70 mt-2 text-right">${timeStr}</div>
+                </div>
+            `;
+            chatMessages.appendChild(msgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Clear Draft immediately
+            currentDraftText = "";
+            updateDraftDisplay();
+
+            // Auto-play audio
+            speakText(textToSpeak);
+        }
+
+        async function sendTextMessage() {
+            const input = document.getElementById('chatTextInput');
+            if (!input || !input.value.trim()) return;
+
+            const textToSend = input.value.trim();
+            const msgId = 'msg-' + Date.now();
+            const signsHtml = generateSignsHtml(textToSend, msgId);
+            const timeStr = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
 
             // Add to chat UI (Text output -> RIGHT)
             const chatMessages = document.getElementById('chatMessages');
@@ -1796,6 +1831,7 @@
                         <div class="font-black text-right flex-1 text-xl drop-shadow-sm">${textToSend}</div>
                     </div>
                     ${signsHtml}
+                    <div class="text-[10px] opacity-70 mt-2 text-right">${timeStr}</div>
                 </div>
             `;
             chatMessages.appendChild(msgDiv);
@@ -2093,14 +2129,15 @@
         function drawHandLandmarks(landmarks, canvasWidth, canvasHeight, targetCtx = ctx) {
             if (!landmarks || landmarks.length === 0) return;
 
-            // Draw for each hand
+            // PRE-CALCULATE common styles
+            targetCtx.lineCap = 'round';
+            targetCtx.lineJoin = 'round';
+
             for (const handLandmarks of landmarks) {
 
-                // === SKELETON BONES (Batch Drawing) ===
-                targetCtx.lineCap = 'round';
-                targetCtx.lineJoin = 'round';
+                // === SKELETON BONES (ULTRA-FAST 2-PASS DRAWING) ===
 
-                // 1. Draw bone shadows (Bottom layer)
+                // 1. Shadow/Outer Glow (Lower CPU impact)
                 targetCtx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
                 targetCtx.lineWidth = 10;
                 targetCtx.beginPath();
@@ -2114,23 +2151,9 @@
                 }
                 targetCtx.stroke();
 
-                // 2. Draw main white skeleton (Middle layer)
-                targetCtx.strokeStyle = '#FFFFFF';
-                targetCtx.lineWidth = 6;
-                targetCtx.beginPath();
-                for (const [start, end] of HAND_CONNECTIONS) {
-                    const s = handLandmarks[start];
-                    const e = handLandmarks[end];
-                    if (s && e) {
-                        targetCtx.moveTo(s.x * canvasWidth, s.y * canvasHeight);
-                        targetCtx.lineTo(e.x * canvasWidth, e.y * canvasHeight);
-                    }
-                }
-                targetCtx.stroke();
-
-                // 3. Draw inner green line (Top glow layer)
+                // 2. Main Neon Core
                 targetCtx.strokeStyle = '#22C55E';
-                targetCtx.lineWidth = 2;
+                targetCtx.lineWidth = 4;
                 targetCtx.beginPath();
                 for (const [start, end] of HAND_CONNECTIONS) {
                     const s = handLandmarks[start];
@@ -2142,43 +2165,32 @@
                 }
                 targetCtx.stroke();
 
-                // === JOINTS (Optimized Circle Points) ===
-                // We'll use a single loop for joints but still need individual arcs/fills
-                // To optimize further, we can group by color
+                // === JOINTS (ULTRA-FAST 1-PASS DRAWING) ===
+                // We draw small solid circles to minimize GPU overhead
+                targetCtx.fillStyle = '#FFFFFF';
                 for (let i = 0; i < handLandmarks.length; i++) {
                     const p = handLandmarks[i];
                     const x = p.x * canvasWidth;
                     const y = p.y * canvasHeight;
 
-                    const isWrist = (i === 0);
                     const isTip = [4, 8, 12, 16, 20].includes(i);
-                    const radius = isWrist ? 8 : (isTip ? 4 : 6);
+                    const radius = isTip ? 3 : 5;
 
-                    // 1. Joint Shadow
-                    targetCtx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-                    targetCtx.beginPath();
-                    targetCtx.arc(x + 1.5, y + 1.5, radius, 0, 2 * Math.PI);
-                    targetCtx.fill();
-
-                    // 2. Main White Dot
-                    targetCtx.fillStyle = '#FFFFFF';
                     targetCtx.beginPath();
                     targetCtx.arc(x, y, radius, 0, 2 * Math.PI);
-                    targetCtx.fill();
-
-                    // 3. Inner Green Core
-                    targetCtx.fillStyle = '#22C55E';
-                    targetCtx.beginPath();
-                    targetCtx.arc(x, y, radius * 0.5, 0, 2 * Math.PI);
                     targetCtx.fill();
                 }
             }
         }
 
+        // Cached elements for main loop
+        let cachedAppView = null;
+        let cachedCameraWrapper = null;
+
         async function predictWebcam() {
             // Check if app is visible, if not, skip processing to save battery
-            const app = document.getElementById('appView');
-            if (app.style.display === 'none') {
+            if (!cachedAppView) cachedAppView = document.getElementById('appView');
+            if (cachedAppView.style.display === 'none') {
                 requestAnimationFrame(predictWebcam);
                 return;
             }
@@ -2192,7 +2204,8 @@
             if (video.videoWidth > 0 && overlay.width !== video.videoWidth) {
                 overlay.width = video.videoWidth;
                 overlay.height = video.videoHeight;
-                document.getElementById("cameraWrapper").style.aspectRatio = `${video.videoWidth}/${video.videoHeight}`;
+                if (!cachedCameraWrapper) cachedCameraWrapper = document.getElementById("cameraWrapper");
+                cachedCameraWrapper.style.aspectRatio = `${video.videoWidth}/${video.videoHeight}`;
             }
 
             if (handLandmarker && video.currentTime !== lastVideoTime) {
