@@ -193,10 +193,13 @@ def text_to_speech():
     """
     try:
         data = request.get_json()
-        text = data.get('text', '') if data else ''
+        raw_text = data.get('text', '') if data else ''
         
-        if not text:
+        if not raw_text:
             return jsonify({'error': 'No text provided'}), 400
+
+        # Use the raw text directly (no padding that might be spoken)
+        text = raw_text
         
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}"
         headers = {
@@ -208,8 +211,9 @@ def text_to_speech():
             "text": text,
             "model_id": "eleven_turbo_v2_5",
             "voice_settings": {
-                "stability": 0.5,
-                "similarity_boost": 0.75
+                "stability": 0.6,
+                "similarity_boost": 0.8,
+                "speed": 0.85  # Slightly slower for clearer pronunciation
             }
         }
         

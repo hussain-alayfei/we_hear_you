@@ -447,7 +447,7 @@
                             </svg>
                         </button>
 
-                        <input type="text" placeholder="اكتب رسالتك..."
+                        <input type="text" id="chatTextInput" placeholder="اكتب رسالتك..."
                             class="flex-1 bg-transparent border-none text-right font-arabic text-slate-700 placeholder:text-slate-400 focus:ring-0 px-2 py-3.5 text-base outline-none">
 
                         <!-- Add Button (Inside Left/End) -->
@@ -461,7 +461,7 @@
                     </div>
 
                     <!-- Send Button (Circle) - Left/End -->
-                    <button
+                    <button id="sendChatTextBtn" onclick="sendTextMessage()"
                         class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-blue-500/30 transform rotate-180 hover:bg-blue-700 transition-all active:scale-95 shrink-0">
                         <svg class="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -1695,13 +1695,20 @@
 
             const textToSpeak = currentDraftText.trim();
 
-            // Add to chat UI (Mockup)
+            // Add to chat UI (Sign Language output -> LEFT) - SIMPLE TEXT ONLY
             const chatMessages = document.getElementById('chatMessages');
             const msgDiv = document.createElement('div');
-            msgDiv.className = "flex justify-end animate-fade-in-up";
+            msgDiv.className = "flex justify-start animate-fade-in-up";
             msgDiv.innerHTML = `
-                <div class="bg-blue-600 text-white rounded-[2rem] rounded-tr-lg py-3 px-6 max-w-xs md:max-w-md shadow-md text-lg">
-                    ${textToSpeak}
+                <div class="bg-blue-600 text-white rounded-[2rem] rounded-tl-lg py-3 px-6 max-w-xs md:max-w-md shadow-md text-lg font-bold">
+                    <div class="flex items-center gap-3">
+                        <div class="flex-1 text-right">${textToSpeak}</div>
+                        <button onclick="speakText('${textToSpeak.replace(/'/g, "\\'")}')" class="p-2 hover:bg-white/20 rounded-full transition-all active:scale-90 text-white" title="استماع">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M12 18.75l-3.75-3.75H4.5A1.5 1.5 0 013 13.5v-3a1.5 1.5 0 011.5-1.5h3.75L12 5.25v13.5z"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             `;
             chatMessages.appendChild(msgDiv);
@@ -1711,39 +1718,117 @@
             currentDraftText = "";
             updateDraftDisplay();
 
-            // Call TTS endpoint and play audio
+            // Auto-play audio
+            speakText(textToSpeak);
+        }
+
+        async function sendTextMessage() {
+            const input = document.getElementById('chatTextInput');
+            if (!input || !input.value.trim()) return;
+
+            const textToSend = input.value.trim();
+            const msgId = 'msg-' + Date.now();
+            const words = textToSend.split(/\s+/);
+
+            // Generate sign images HTML (Word-by-Word grouping, Larger Images)
+            let signsHtml = `<div id="signs-${msgId}" class="hidden flex flex-col gap-2 mb-2 mt-4 p-4 bg-white/60 rounded-2xl border border-blue-100 animate-fade-in" dir="rtl">`;
+
+            words.forEach((word, wordIdx) => {
+                if (!word) return;
+
+                signsHtml += `
+                    <div class="flex flex-col gap-2">
+                        <div class="text-sm font-black text-blue-800 border-b border-blue-100 pb-0.5 mb-1 pr-1">${word}</div>
+                        <div class="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-1.5 sm:gap-2">
+                `;
+
+                for (let char of word) {
+                    if (/[.,!؟،]/.test(char)) continue;
+
+                    signsHtml += `
+                        <div class="flex flex-col items-center">
+                            <div class="w-full aspect-square bg-white rounded-lg border border-blue-100 shadow-sm overflow-hidden transition-all hover:scale-105 active:border-blue-500">
+                                <img src="/sign_image/${encodeURIComponent(char)}" class="w-full h-full object-contain" onerror="this.parentElement.style.display='none'">
+                            </div>
+                            <span class="text-[11px] sm:text-sm text-white bg-blue-600 font-black mt-1 px-2 py-0.5 rounded-full shadow-md transform -translate-y-1 ring-1 ring-white">${char}</span>
+                        </div>
+                    `;
+                }
+
+                signsHtml += `
+                        </div>
+                    </div>
+                `;
+            });
+
+            signsHtml += '</div>';
+
+            // Add to chat UI (Text output -> RIGHT)
+            const chatMessages = document.getElementById('chatMessages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = "flex justify-end animate-fade-in-up";
+            msgDiv.innerHTML = `
+                <div class="bg-blue-100 text-slate-800 rounded-[2rem] rounded-tr-lg py-4 px-6 max-w-[95%] md:max-w-lg shadow-sm text-lg border border-blue-200">
+                    <div class="flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-2">
+                             <button onclick="toggleSigns('${msgId}')" class="p-2.5 hover:bg-white rounded-full transition-all active:scale-90 text-blue-600 shadow-md bg-white/80 ring-1 ring-blue-100" title="عرض لغة الإشارة">
+                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0V12m-3 .5a1.5 1.5 0 003 0M10 12V5.5a1.5 1.5 0 113 0V12m-3 0a1.5 1.5 0 003 0M13 12V6.5a1.5 1.5 0 113 0V12m-3 0a1.5 1.5 0 003 0m0 0V9.5a1.5 1.5 0 113 0V12a7 7 0 11-14 0"></path>
+                                </svg>
+                            </button>
+                            <button onclick="speakText('${textToSend.replace(/'/g, "\\'")}')" class="p-2.5 hover:bg-white rounded-full transition-all active:scale-90 text-slate-600 shadow-md bg-white/80 ring-1 ring-slate-100" title="استماع">
+                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M12 18.75l-3.75-3.75H4.5A1.5 1.5 0 013 13.5v-3a1.5 1.5 0 011.5-1.5h3.75L12 5.25v13.5z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="font-black text-right flex-1 text-xl drop-shadow-sm">${textToSend}</div>
+                    </div>
+                    ${signsHtml}
+                </div>
+            `;
+            chatMessages.appendChild(msgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Clear input
+            input.value = "";
+
+            // Auto-play on first send
+            speakText(textToSend);
+        }
+
+        async function speakText(text) {
+            if (!text) return;
             try {
                 const response = await fetch('/tts', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: textToSpeak })
+                    body: JSON.stringify({ text: text })
                 });
 
                 if (response.ok) {
                     const audioBlob = await response.blob();
                     const audioUrl = URL.createObjectURL(audioBlob);
                     const audio = new Audio(audioUrl);
-                    audio.play();
-                } else {
-                    console.error('TTS Error:', response.status);
+                    // Slight delay to ensure buffer is ready
+                    setTimeout(() => audio.play(), 50);
                 }
             } catch (e) {
-                console.error('TTS Fetch Error:', e);
+                console.error('TTS Error:', e);
             }
-
-            // AI Reply Simulation
-            setTimeout(() => {
-                const replyDiv = document.createElement('div');
-                replyDiv.className = "flex justify-start animate-fade-in-up";
-                replyDiv.innerHTML = `
-                   <div class="bg-white text-slate-800 border border-slate-100 rounded-[2rem] rounded-tl-lg py-3 px-6 max-w-xs md:max-w-md shadow-sm text-lg">
-                        جميل جداً! 🌟
-                    </div>
-                `;
-                chatMessages.appendChild(replyDiv);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            }, 1000);
         }
+
+        // Add Enter key listener for chat input
+        document.addEventListener('DOMContentLoaded', () => {
+            const chatInput = document.getElementById('chatTextInput');
+            if (chatInput) {
+                chatInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        sendTextMessage();
+                    }
+                });
+            }
+        });
 
         function updateDraftDisplay() {
             const el = document.getElementById('currentDraft');
@@ -1754,10 +1839,24 @@
             }
         }
 
+        function toggleSigns(msgId) {
+            const el = document.getElementById(`signs-${msgId}`);
+            if (el) {
+                el.classList.toggle('hidden');
+                // Scroll into view if opened
+                if (!el.classList.contains('hidden')) {
+                    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+                }
+            }
+        }
+
         // Expose functions to window for HTML onclick
         window.deleteLastChar = deleteLastChar;
         window.confirmWord = confirmWord;
         window.sendDraftMessage = sendDraftMessage;
+        window.sendTextMessage = sendTextMessage;
+        window.toggleSigns = toggleSigns;
+        window.speakText = speakText;
 
         window.toggleInputMode = function (mode) {
             const tabText = document.getElementById('tabText');
