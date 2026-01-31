@@ -505,12 +505,11 @@
                     <!-- 1. The Camera View (Responsive Height) -->
                     <div
                         class="relative w-full h-64 md:h-72 bg-slate-900 rounded-3xl overflow-hidden shadow-inner border border-slate-800 group">
-                        <!-- Actual Video Element -->
                         <video id="chatVideoElement"
                             class="absolute inset-0 w-full h-full object-cover transform -scale-x-100" autoplay
                             playsinline></video>
                         <canvas id="chatCanvasElement"
-                            class="absolute inset-0 w-full h-full transform -scale-x-100"></canvas>
+                            class="absolute inset-0 w-full h-full object-cover transform -scale-x-100"></canvas>
 
                         <!-- Overlay: Status (Top Left) -->
                         <div
@@ -809,7 +808,7 @@
 
                 <!-- Prediction Badge -->
                 <div id="predBadge"
-                    class="absolute top-4 right-4 z-30 bg-white/90 backdrop-blur rounded-xl p-3 shadow-lg border border-white/20 min-w-[80px] flex flex-col items-center justify-center">
+                    class="absolute top-4 right-4 z-30 bg-white/95 rounded-xl p-3 shadow-lg border border-slate-100 min-w-[80px] flex flex-col items-center justify-center">
                     <div class="text-[10px] text-slate-500 font-bold font-arabic mb-1 text-center">
                         الإشارة</div>
                     <div id="predVal" class="text-5xl font-black text-blue-600 text-center leading-none quran-text">-
@@ -1000,6 +999,40 @@
         </div>
     </div>
 
+
+    <script>
+            // ============================================
+            // CONSOLE LOG SUPPRESSOR (CLEAN ENVIRONMENT)
+            // ============================================
+            (function () {
+                const originalLog = console.log;
+                const originalWarn = console.warn;
+                const originalError = console.error;
+                const originalInfo = console.info;
+
+                const noisePatterns = [
+                    'cdn.tailwindcss.com',
+                    'Permissions policy violation: unload',
+                    'contentScript.js',
+                    'Successfully created a WebGL context',
+                    'GL version',
+                    'OpenGL error checking is disabled',
+                    'Graph successfully started running',
+                    'Initializing AI for Safe Chat',
+                    'no notes'
+                ];
+
+                function shouldSuppress(args) {
+                    const msg = Array.from(args).join(' ');
+                    return noisePatterns.some(pattern => msg.includes(pattern));
+                }
+
+                console.log = function () { if (!shouldSuppress(arguments)) originalLog.apply(console, arguments); };
+                console.warn = function () { if (!shouldSuppress(arguments)) originalWarn.apply(console, arguments); };
+                console.error = function () { if (!shouldSuppress(arguments)) originalError.apply(console, arguments); };
+                console.info = function () { if (!shouldSuppress(arguments)) originalInfo.apply(console, arguments); };
+            })();
+    </script>
 
     <script type="module">
         import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
@@ -1544,9 +1577,9 @@
         let currentDraftText = "";
         let lastTypedTime = 0;
         let lastSafeChatPredictionTime = 0;
-        const SAFE_PREDICTION_INTERVAL = 150;
-        const STABILITY_THRESHOLD = 7;        // Increased: ~1.05s hold (from 5)
-        const MIN_TIME_BETWEEN_LETTERS = 1000; // Slower rhythm: 1 second pause (from 600ms)
+        const SAFE_PREDICTION_INTERVAL = 120;
+        const STABILITY_THRESHOLD = 8;        // Increased: ~1.5s hold (from 7)
+        const MIN_TIME_BETWEEN_LETTERS = 1100; // Slower rhythm: ~2 seconds (from 1000ms)
 
         async function startSafeChatTraining() {
             safeChatMode = true;
@@ -1555,7 +1588,7 @@
             // Check if AI is ready (Client-Side MediaPipe)
             // This ensures we reuse the architecture user mentioned ("those two hidden")
             if (typeof handLandmarker === 'undefined' || !handLandmarker) {
-                console.log("Initializing AI for Safe Chat...");
+                // Initializing AI (Log suppressed via global filter)
                 try {
                     if (typeof initAI === 'function') {
                         await initAI();
@@ -1707,9 +1740,20 @@
                     lastDraftPrediction = pred;
                 }
 
-                // TYPING LOGIC (Time-based refresh)
+                // TYPING LOGIC (Time-based refresh with Repeat Prevention)
                 const timeSinceLastType = now - lastTypedTime;
-                if (stabilityCounter >= STABILITY_THRESHOLD && timeSinceLastType >= MIN_TIME_BETWEEN_LETTERS) {
+                const lastChar = currentDraftText.slice(-1);
+
+                // If user is repeating the SAME letter, be much more conservative
+                let dynamicThreshold = STABILITY_THRESHOLD;
+                let dynamicInterval = MIN_TIME_BETWEEN_LETTERS;
+
+                if (pred === lastChar) {
+                    dynamicThreshold = Math.floor(STABILITY_THRESHOLD * 1.5); // 50% more hold time
+                    dynamicInterval = MIN_TIME_BETWEEN_LETTERS * 1.5;         // 50% more interval
+                }
+
+                if (stabilityCounter >= dynamicThreshold && timeSinceLastType >= dynamicInterval) {
                     typeLetterToDraft(pred);
                     stabilityCounter = 0;
                     lastTypedTime = now;
@@ -2355,36 +2399,28 @@
         ];
 
         // Draw hand landmarks on canvas (Skeleton Style - Green)
-        // Draw hand landmarks on canvas (Skeleton Style - Green)
         function drawHandLandmarks(landmarks, canvasWidth, canvasHeight, targetCtx = ctx) {
             if (!landmarks || landmarks.length === 0) return;
 
-            // PRE-CALCULATE common styles
+            // 1. CLEAR AND RESET
+            // Ensure no transformations from previous frames interfere
+            targetCtx.setTransform(1, 0, 0, 1, 0, 0);
+
+            // 2. APPLY MIRRORING manually if needed? 
+            // Wait, we use CSS mirror (-scale-x-100). 
+            // So we draw naturally, CSS flips it.
+
             targetCtx.lineCap = 'round';
             targetCtx.lineJoin = 'round';
 
             for (const handLandmarks of landmarks) {
-
-                // === SKELETON BONES (ULTRA-FAST 2-PASS DRAWING) ===
-
-                // 1. Shadow/Outer Glow (Lower CPU impact)
-                targetCtx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-                targetCtx.lineWidth = 10;
+                // SKELETON (COMBINED PASS FOR PERFORMANCE)
                 targetCtx.beginPath();
-                for (const [start, end] of HAND_CONNECTIONS) {
-                    const s = handLandmarks[start];
-                    const e = handLandmarks[end];
-                    if (s && e) {
-                        targetCtx.moveTo(s.x * canvasWidth + 2, s.y * canvasHeight + 2);
-                        targetCtx.lineTo(e.x * canvasWidth + 2, e.y * canvasHeight + 2);
-                    }
-                }
-                targetCtx.stroke();
-
-                // 2. Main Neon Core
                 targetCtx.strokeStyle = '#22C55E';
                 targetCtx.lineWidth = 4;
-                targetCtx.beginPath();
+                targetCtx.shadowBlur = 5;
+                targetCtx.shadowColor = 'rgba(34, 197, 94, 0.5)';
+
                 for (const [start, end] of HAND_CONNECTIONS) {
                     const s = handLandmarks[start];
                     const e = handLandmarks[end];
@@ -2395,20 +2431,21 @@
                 }
                 targetCtx.stroke();
 
-                // === JOINTS (ULTRA-FAST 1-PASS DRAWING) ===
-                // We draw small solid circles to minimize GPU overhead
+                // RESET SHADOW (Very important for performance)
+                targetCtx.shadowBlur = 0;
+
+                // JOINTS (FINGERTIPS ONLY for extra speed/clarity)
                 targetCtx.fillStyle = '#FFFFFF';
-                for (let i = 0; i < handLandmarks.length; i++) {
+                const tips = [4, 8, 12, 16, 20];
+                for (const i of tips) {
                     const p = handLandmarks[i];
-                    const x = p.x * canvasWidth;
-                    const y = p.y * canvasHeight;
-
-                    const isTip = [4, 8, 12, 16, 20].includes(i);
-                    const radius = isTip ? 3 : 5;
-
-                    targetCtx.beginPath();
-                    targetCtx.arc(x, y, radius, 0, 2 * Math.PI);
-                    targetCtx.fill();
+                    if (p) {
+                        const x = p.x * canvasWidth;
+                        const y = p.y * canvasHeight;
+                        targetCtx.beginPath();
+                        targetCtx.arc(x, y, 4, 0, 2 * Math.PI);
+                        targetCtx.fill();
+                    }
                 }
             }
         }
@@ -2454,7 +2491,8 @@
                     const now = Date.now();
                     if (now - lastPredictionTime > PREDICTION_INTERVAL) {
                         lastPredictionTime = now;
-                        sendForPrediction();
+                        // OPTIMIZATION: Use landmarks for prediction instead of expensive image/canvas processing
+                        predictFromLandmarks(results.landmarks[0]);
                     }
                 } else {
                     predVal.innerText = '-';
@@ -2468,18 +2506,16 @@
         // ============================================
         // BACKEND
         // ============================================
-        function sendForPrediction() {
-            const proc = document.createElement('canvas');
-            proc.width = video.videoWidth;
-            proc.height = video.videoHeight;
-            const pCtx = proc.getContext('2d');
-            pCtx.drawImage(video, 0, 0, proc.width, proc.height);
-            const u = proc.toDataURL('image/jpeg', 0.5);
+        // ============================================
+        // BACKEND (OPTIMIZED: LANDMARK-BASED)
+        // ============================================
+        function predictFromLandmarks(landmarks) {
+            if (!landmarks) return;
 
-            fetch('/predict', {
+            fetch('/predict_landmarks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: u })
+                body: JSON.stringify({ landmarks: landmarks })
             }).then(r => r.json()).then(d => {
                 // Handle prediction (can be null, string, or undefined)
                 if (d.prediction !== undefined && d.prediction !== null) {
