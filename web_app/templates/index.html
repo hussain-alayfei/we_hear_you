@@ -165,6 +165,23 @@
             color: #ef4444 !important;
             /* bright red icon */
         }
+
+        /* Slow Motion Zoom-In Animation */
+        @keyframes slowZoomIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.3);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .animate-slow-zoom {
+            animation: slowZoomIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
     </style>
 </head>
 
@@ -211,37 +228,30 @@
                     class="w-full flex-1 flex flex-col items-center justify-center -mt-10 md:mt-0 animate-fade-in-up stagger-2 min-h-[50vh]">
 
                     <!-- Main Big Button -->
-                    <button onclick="showChatView()"
-                        class="group relative w-72 h-72 md:w-96 md:h-96 rounded-full bg-[#2563EB] hover:bg-[#1d4ed8] transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(37,99,235,0.6)] hover:shadow-[0_30px_70px_-10px_rgba(37,99,235,0.7)] active:scale-95 flex flex-col items-center justify-center text-white z-10">
+                    <button onclick="startNewChat()"
+                        class="group relative w-52 h-52 md:w-64 md:h-64 rounded-full bg-[#2563EB] hover:bg-[#1d4ed8] transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(37,99,235,0.6)] hover:shadow-[0_30px_70px_-10px_rgba(37,99,235,0.7)] active:scale-95 flex flex-col items-center justify-center text-white z-10 animate-slow-zoom">
 
                         <!-- Subtle Hover background -->
                         <div
                             class="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300">
                         </div>
 
-                        <!-- Icon (Modern Official Chat Icon) -->
-                        <svg class="w-16 h-16 md:w-24 md:h-24 mb-6 md:mb-8 text-blue-50" fill="none"
-                            stroke="currentColor" viewBox="0 0 24 24">
+                        <!-- Icon (Minimalist Chat Icon) -->
+                        <svg class="w-8 h-8 md:w-12 md:h-12 mb-3 md:mb-5 text-blue-50" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                                 d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z">
                             </path>
                         </svg>
 
-                        <h2 class="text-3xl md:text-5xl font-black font-arabic mb-2 tracking-wide">ابدأ المحادثة</h2>
-                        <p class="text-blue-100 text-sm md:text-lg font-bold font-arabic opacity-90">ترجمة ذكية فورية
-                        </p>
+                        <h2 class="text-2xl md:text-3xl font-black font-arabic mb-0 tracking-wide">ابدأ الآن</h2>
                     </button>
 
-                    <!-- Powered By Badge -->
-                    <div
-                        class="mt-10 md:mt-12 bg-blue-50/80 backdrop-blur text-[#2563EB] px-6 py-2 md:px-8 md:py-3 rounded-full text-xs md:text-sm font-black font-arabic shadow-sm border border-blue-100">
-                        مدعوم بالذكاء الاصطناعي ✨
-                    </div>
 
                     <!-- Description -->
-                    <p
-                        class="mt-6 text-slate-500 text-sm md:text-base font-bold font-arabic text-center max-w-xs md:max-w-md leading-relaxed opacity-80">
-                        نحول لغة الإشارة إلى كلمات، والكلمات إلى تواصل حقيقي.
+                    <p id="typingDescription"
+                        class="mt-12 text-slate-500 text-sm md:text-base font-bold font-arabic text-center max-w-xs md:max-w-md leading-relaxed opacity-80 min-h-[3em]">
+                        <!-- Text will be typed here -->
                     </p>
                 </div>
             </div>
@@ -1556,6 +1566,19 @@
         // ============================================
         // CHAT INTERFACE
         // ============================================
+        window.startNewChat = function () {
+            // Clear chat messages for a "New Chat" experience
+            const chatMessages = document.getElementById('chatMessages');
+            if (chatMessages) chatMessages.innerHTML = '';
+
+            // Reset state
+            currentDraftText = "";
+            updateDraftDisplay();
+
+            // Show chat view
+            showChatView();
+        }
+
         window.showChatView = function () {
             document.getElementById('chatView').classList.remove('hidden');
             document.getElementById('chatView').classList.add('flex');
@@ -3350,9 +3373,25 @@
             }
         }
 
+        // Typewriter Effect for Landing Description
+        document.addEventListener('DOMContentLoaded', () => {
+            const text = "نحول الإشارة إلى كلمات مسموعة.";
+            const element = document.getElementById('typingDescription');
+            let i = 0;
+
+            function typeWriter() {
+                if (i < text.length) {
+                    element.innerHTML += text.charAt(i);
+                    i++;
+                    setTimeout(typeWriter, 100);
+                }
+            }
+
+            // Start typing after a short delay
+            setTimeout(typeWriter, 1000);
+        });
+
     </script>
 </body>
-
-</html>
 
 </html>
