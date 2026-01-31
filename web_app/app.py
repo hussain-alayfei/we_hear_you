@@ -208,8 +208,8 @@ def predict_landmarks():
 # ============================================
 # TEXT-TO-SPEECH (ElevenLabs API)
 # ============================================
-ELEVENLABS_API_KEY = "sk_a29dcc8f5bc1c17879dcd07c21dfbb559a382040f2947f5f"
-ELEVENLABS_VOICE_ID = "Jkgj7lZ9O8Am0h71d9fq"
+ELEVENLABS_API_KEY = os.environ.get('ELEVENLABS_API_KEY')
+ELEVENLABS_VOICE_ID = os.environ.get('ELEVENLABS_VOICE_ID', 'Jkgj7lZ9O8Am0h71d9fq')
 
 @app.route('/tts', methods=['POST'])
 def text_to_speech():
@@ -219,6 +219,9 @@ def text_to_speech():
     Returns: audio/mpeg stream
     """
     try:
+        if not ELEVENLABS_API_KEY:
+            return jsonify({'error': 'ElevenLabs API key not configured'}), 500
+            
         data = request.get_json()
         raw_text = data.get('text', '') if data else ''
         
