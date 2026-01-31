@@ -138,6 +138,33 @@
             transform: scale(1);
             pointer-events: auto;
         }
+
+        /* Microphone Pulse Animation */
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.8);
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            }
+
+            70% {
+                transform: scale(1.1);
+                box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+            }
+
+            100% {
+                transform: scale(0.8);
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+
+        .mic-recording {
+            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+            background-color: #fee2e2 !important;
+            /* light red bg */
+            border-radius: 50%;
+            color: #ef4444 !important;
+            /* bright red icon */
+        }
     </style>
 </head>
 
@@ -438,8 +465,9 @@
                     <div
                         class="flex-1 relative bg-slate-50 border border-slate-200 rounded-[2rem] flex items-center px-2 shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500/50 transition-all">
 
-                        <!-- Mic Button (Inside Right/Start) -->
-                        <button class="p-2.5 text-slate-400 hover:text-blue-600 transition-colors">
+                        <!-- Mic Button (STT) -->
+                        <button id="micBtn" onclick="toggleArabicSTT()"
+                            class="p-2.5 text-slate-400 hover:text-blue-600 transition-colors">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z">
@@ -1777,10 +1805,10 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0V12m-3 .5a1.5 1.5 0 003 0M10 12V5.5a1.5 1.5 0 113 0V12m-3 0a1.5 1.5 0 003 0M13 12V6.5a1.5 1.5 0 113 0V12m-3 0a1.5 1.5 0 003 0m0 0V9.5a1.5 1.5 0 113 0V12a7 7 0 11-14 0"></path>
                                 </svg>
                             </button>
-                            <button onclick="speakText('${textToSpeak.replace(/'/g, "\\'")}')" class="p-2.5 hover:bg-white/20 rounded-full transition-all active:scale-90 text-white" title="استماع">
-                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M12 18.75l-3.75-3.75H4.5A1.5 1.5 0 013 13.5v-3a1.5 1.5 0 011.5-1.5h3.75L12 5.25v13.5z"></path>
-                                </svg>
+                        <button onclick="speakText(this, '${textToSpeak.replace(/'/g, "\\'")}')" class="p-2 hover:bg-white/20 rounded-full transition-all active:scale-90 text-white" title="استماع">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M12 18.75l-3.75-3.75H4.5A1.5 1.5 0 013 13.5v-3a1.5 1.5 0 011.5-1.5h3.75L12 5.25v13.5z"></path>
+                            </svg>
                             </button>
                         </div>
                         <div class="font-black text-right flex-1 text-xl drop-shadow-sm">${textToSpeak}</div>
@@ -1822,7 +1850,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0V12m-3 .5a1.5 1.5 0 003 0M10 12V5.5a1.5 1.5 0 113 0V12m-3 0a1.5 1.5 0 003 0M13 12V6.5a1.5 1.5 0 113 0V12m-3 0a1.5 1.5 0 003 0m0 0V9.5a1.5 1.5 0 113 0V12a7 7 0 11-14 0"></path>
                                 </svg>
                             </button>
-                            <button onclick="speakText('${textToSend.replace(/'/g, "\\'")}')" class="p-2.5 hover:bg-white rounded-full transition-all active:scale-90 text-slate-600 shadow-md bg-white/80 ring-1 ring-slate-100" title="استماع">
+                            <button onclick="speakText(this, '${textToSend.replace(/'/g, "\\'")}')" class="p-2.5 hover:bg-white rounded-full transition-all active:scale-90 text-slate-600 shadow-md bg-white/80 ring-1 ring-slate-100" title="استماع">
                                 <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M12 18.75l-3.75-3.75H4.5A1.5 1.5 0 013 13.5v-3a1.5 1.5 0 011.5-1.5h3.75L12 5.25v13.5z"></path>
                                 </svg>
@@ -1844,8 +1872,57 @@
             speakText(textToSend);
         }
 
-        async function speakText(text) {
+        // ============================================
+        // ROBUST TTS PLAYER (Play/Stop/Conflict)
+        // ============================================
+        let currentAudio = null;
+        let currentBtn = null;
+        let currentSpeechId = 0; // Prevent race conditions
+
+        async function speakText(arg1, arg2) {
+            let btn = null;
+            let text = "";
+
+            if (typeof arg1 === 'string') {
+                // Usage: speakText("Hello") -> Auto-play
+                text = arg1;
+                btn = null;
+            } else {
+                // Usage: speakText(this, "Hello") -> Click
+                btn = arg1;
+                text = arg2;
+            }
+
+            // 1. Generate unique ID for this request
+            const myId = ++currentSpeechId;
+
+            // 2. Handle Stop/Reset Logic
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+                currentAudio = null;
+            }
+
+            if (currentBtn) {
+                // Reset previous button to original state
+                resetBtnUI(currentBtn);
+                const prev = currentBtn;
+                currentBtn = null;
+
+                // If clicked self, just stop (Toggle behavior)
+                if (btn && prev === btn) {
+                    return;
+                }
+            }
+
             if (!text) return;
+
+            // 3. Setup New Audio
+            if (btn) {
+                currentBtn = btn;
+                setBtnPlaying(btn);
+            }
+
             try {
                 const response = await fetch('/tts', {
                     method: 'POST',
@@ -1853,16 +1930,169 @@
                     body: JSON.stringify({ text: text })
                 });
 
+                // If a newer request started while we were fetching -> ABORT
+                if (myId !== currentSpeechId) {
+                    // Just exit silently, UI will be updated by the newer request
+                    return;
+                }
+
                 if (response.ok) {
                     const audioBlob = await response.blob();
                     const audioUrl = URL.createObjectURL(audioBlob);
                     const audio = new Audio(audioUrl);
+                    currentAudio = audio;
+
+                    audio.onended = () => {
+                        // Only reset if this is still the active request
+                        if (myId === currentSpeechId) {
+                            if (currentBtn) resetBtnUI(currentBtn);
+                            currentBtn = null;
+                            currentAudio = null;
+                        }
+                    };
+
                     // Slight delay to ensure buffer is ready
-                    setTimeout(() => audio.play(), 50);
+                    setTimeout(() => {
+                        if (myId === currentSpeechId) audio.play();
+                    }, 50);
+                } else {
+                    if (currentBtn) resetBtnUI(currentBtn);
+                    currentBtn = null;
+                    console.error('TTS Failed');
                 }
             } catch (e) {
+                // Ignore errors if preempted
+                if (myId !== currentSpeechId) return;
+
                 console.error('TTS Error:', e);
+                if (currentBtn) resetBtnUI(currentBtn);
+                currentBtn = null;
             }
+        }
+
+        function setBtnPlaying(btn) {
+            // Save original icon (if we used a more complex system, we'd store it in dataset)
+            // But here we know it's the Speaker icon.
+            // Replace with STOP icon (Red square with ring)
+            btn.innerHTML = `
+                <svg class="w-6 h-6 animate-pulse text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                    <rect x="6" y="6" width="12" height="12" rx="2" ry="2"></rect>
+                </svg>
+            `;
+            // Add active ring
+            btn.classList.add('ring-2', 'ring-red-400', 'bg-red-50');
+        }
+
+        function resetBtnUI(btn) {
+            // Restore Speaker Icon
+            // Using generic SVG that works for both white (draft) and slate (text) contexts
+            btn.innerHTML = `
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M12 18.75l-3.75-3.75H4.5A1.5 1.5 0 013 13.5v-3a1.5 1.5 0 011.5-1.5h3.75L12 5.25v13.5z"></path>
+                </svg>
+            `;
+            btn.classList.remove('ring-2', 'ring-red-400', 'bg-red-50');
+        }
+
+        // ============================================
+        // SPEECH-TO-TEXT (STT) LOGIC
+        // ============================================
+        let recognition = null;
+        let isRecording = false;
+
+        window.toggleArabicSTT = function () {
+            if (isRecording) {
+                recognition.stop();
+                return;
+            }
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("للأسف، متصفحك لا يدعم التعرف على الكلام. يرجى استخدام متصفح حديث مثل Chrome.");
+                return;
+            }
+
+            if (!recognition) {
+                recognition = new SpeechRecognition();
+                recognition.lang = 'ar-SA';
+                recognition.continuous = true; // Keep listening even if user pauses
+                recognition.interimResults = true; // Show results in real-time (FAST)
+
+                recognition.onstart = () => {
+                    isRecording = true;
+                    updateMicUI(true);
+                };
+
+                recognition.onresult = (event) => {
+                    let finalTranscript = '';
+                    let interimTranscript = '';
+                    let isFinal = false;
+
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                            isFinal = true;
+                        } else {
+                            interimTranscript += event.results[i][0].transcript;
+                        }
+                    }
+
+                    const input = document.getElementById('chatTextInput');
+                    if (input) {
+                        // Show interim in placeholder for instant feedback
+                        if (interimTranscript) {
+                            input.placeholder = interimTranscript + "...";
+                        } else {
+                            input.placeholder = "تحدث الآن...";
+                        }
+
+                        if (finalTranscript) {
+                            input.value += (input.value ? ' ' : '') + finalTranscript;
+                            input.dispatchEvent(new Event('input', { bubbles: true }));
+                            // Reset placeholder after final part is added
+                            input.placeholder = "تحدث الآن...";
+                        }
+                    }
+                };
+
+                recognition.onerror = (event) => {
+                    console.error("STT Error:", event.error);
+                    stopRecordingUI();
+                };
+
+                recognition.onend = () => {
+                    // Only stop UI if actively recording logic finished (or error)
+                    // With continuous=true, it might stop on network error or very long silence
+                    stopRecordingUI();
+                    isRecording = false;
+                };
+            }
+
+            try {
+                recognition.start();
+            } catch (e) {
+                console.error("Recognition start error:", e);
+                stopRecordingUI();
+            }
+        }
+
+        function updateMicUI(isRec) {
+            const micBtn = document.getElementById('micBtn');
+            const input = document.getElementById('chatTextInput');
+            if (micBtn) {
+                if (isRec) {
+                    micBtn.classList.add('mic-recording');
+                    if (input) input.placeholder = "تحدث الآن...";
+                } else {
+                    micBtn.classList.remove('mic-recording');
+                    if (input) input.placeholder = "اكتب رسالتك...";
+                }
+            }
+        }
+
+        function stopRecordingUI() {
+            // isRecording = false; // Handled in onend
+            updateMicUI(false);
         }
 
         // Add Enter key listener for chat input
